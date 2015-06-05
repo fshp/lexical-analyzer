@@ -1,30 +1,37 @@
 package me.fshp.compiler
 
 trait Expressions {
-  sealed abstract class Expression {
-    def mkString: String = mkString(0)
-    def mkString(depth: Int): String = {
-      "\t" * depth + toString
-    }
+  sealed trait Expression extends Printable
+  sealed case class IntegerLiteral(i: Int) extends Expression with IntPrintable
+  sealed abstract class BinaryOp(val l: Expression, val r: Expression) extends Expression with BinaryPrintable
+  sealed case class Sum(override val l: Expression, override val r: Expression) extends BinaryOp(l ,r)
+  sealed case class Sub(override val l: Expression, override val r: Expression) extends BinaryOp(l ,r)
+  sealed case class Mul(override val l: Expression, override val r: Expression) extends BinaryOp(l ,r)
+  sealed case class Div(override val l: Expression, override val r: Expression) extends BinaryOp(l ,r)
+
+
+  sealed trait Printable {
+    this: Expression =>
+      val shifting = "\t"
+      val name = this.getClass.getSimpleName
+      override def toString: String = toString(0)
+      def toString(depth: Int): String = shifting * depth + super.toString
   }
 
-  sealed case class ExprList(e: Expression, el: List[Expression]) extends Expression {
-    override def mkString(depth: Int): String = {
-      val eS = e.mkString(depth+1)
-      val elS = el map {_.mkString(depth+2)} mkString ("\n")
-      val shift = "\t" * depth
-      val shift2 = "\t" * (depth + 1)
-      shift + "ExprList(\n" +
-        eS + "\n" +
-        shift2 +"List(\n" +
-          elS + "\n" +
-        shift2 + ")\n" +
-        shift + ")"
-    }
+  sealed trait IntPrintable extends Printable {
+    this: IntegerLiteral =>
+      override def toString(depth: Int): String = {
+        shifting * depth + "Int(" + i + ")"
+      }
   }
-  sealed case class IntegerLiteral(i: Int) extends Expression
-  sealed case class Sum(e:Expression) extends Expression
-  sealed case class Sub(e: Expression) extends Expression
-  sealed case class Mul(e: Expression) extends Expression
-  sealed case class Div(e: Expression) extends Expression
+
+  sealed trait BinaryPrintable extends Printable {
+    this: BinaryOp =>
+      override def toString(depth: Int): String = {
+        shifting * depth + name + "(\n" +
+          l.toString(depth + 1) + ",\n" +
+          r.toString(depth + 1) + "\n" +
+        shifting * depth + ")"
+      }
+  }
 }

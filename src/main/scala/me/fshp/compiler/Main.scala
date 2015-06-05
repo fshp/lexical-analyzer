@@ -1,5 +1,5 @@
 package me.fshp.compiler
 
 object Main extends App {
-  println("Hello, World!")
+  val result = LexicalAnalyzer.parseSource("1-2-3-4")
 }

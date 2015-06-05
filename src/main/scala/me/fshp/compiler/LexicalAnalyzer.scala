@@ -1,6 +1,8 @@
 package me.fshp.compiler
 
-import scala.util.parsing.combinator.RegexParsers
+import java.beans.Expression
+
+import scala.util.parsing.combinator.{PackratParsers, RegexParsers}
 
 trait LexicalAnalyzer extends RegexParsers with Expressions {
   //val program = "program"
@@ -16,36 +18,30 @@ trait LexicalAnalyzer extends RegexParsers with Expressions {
   //lazy val term: Parser[Any]   = factor ~ rep(("*" | "/") ~ factor)
   //lazy val factor: Parser[Any] = number | "(" ~ expr ~ ")"
 
-  def expr: Parser[ExprList] = term ~ operator1List ^^ {
-    case (e ~ el) => ExprList(e, el)
+  def expr: Parser[Expression] = (term ~ rep(("+" | "-") ~ term)) ^^ {
+    case t ~ p => p.foldLeft(t) {
+      (e: Expression, lexeme: ~[String, Expression]) =>
+        lexeme match {
+          case "+" ~ r => Sum(e, r)
+          case "-" ~ r => Sub(e, r)
+        }
+    }
   }
   
-  def term: Parser[ExprList] = factor ~ operator2List ^^ {
-    case (e ~ el) => ExprList(e, el)
-  }
-
-  def factor = integer
-
-  def operator1List: Parser[List[Expression]] = rep(("+" | "-") ~ integer) ^^ {
-    _ map {
-      case ("+" ~ e) => Sum(e)
-      case ("-" ~ e) => Sub(e)
+  def term: Parser[Expression] = factor ~ rep(("*" | "/") ~ factor) ^^ {
+    case t ~ p => p.foldLeft(t) {
+      (e: Expression, lexeme: ~[String, Expression]) =>
+        lexeme match {
+          case "*" ~ r => Mul(e, r)
+          case "/" ~ r => Div(e, r)
+        }
     }
   }
 
-  def operator2List: Parser[List[Expression]] = rep(("*" | "/") ~ integer) ^^ {
-    _ map {
-      case ("*" ~ e) => Mul(e)
-      case ("/" ~ e) => Div(e)
-    }
-  }
-//
-//  def sum: Parser[Sum] = operand ~ "+" ~ operand ^^ {
-//    case (l ~ _ ~ r) => Sum(l, r)
-//  }
+  def factor: Parser[Expression] = integer | "(" ~> expr <~ ")"
 
   def integer: Parser[IntegerLiteral] = "[0-9]+".r ^^ {
-    s => IntegerLiteral(s.toInt)
+    case s => IntegerLiteral(s.toInt)
   }
 
 }
@@ -54,7 +50,7 @@ object LexicalAnalyzer extends LexicalAnalyzer {
   def parseSource(source: String): Expression = {
     parseAll(expr, source) match {
       case Success (t, _) => t
-      case NoSuccess(msg, next) => IntegerLiteral(0) //new IllegalArgumentException(next.pos.longString + ": " + msg)
+      case NoSuccess(msg, next) => throw new IllegalArgumentException(next.pos.longString + ": " + msg)
     }
   }
 }

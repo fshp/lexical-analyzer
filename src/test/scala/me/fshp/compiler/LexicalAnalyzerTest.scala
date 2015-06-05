@@ -5,10 +5,10 @@ import LexicalAnalyzer._
 
 class LexicalAnalyzerTest extends FlatSpec with Matchers{
 
-  "The parser" should "parse an integer literal" in {
+/*  "The parser" should "parse an integer literal" in {
     LexicalAnalyzer.parseSource("66613") should be (
-      ExprList(IntegerLiteral(66613), List()))
-  }
+      //ExprList(IntegerLiteral(66613), List()))
+  }*/
 
 //  it should "parse an sum of expressions" in {
 //    LexicalAnalyzer.parseSource("1+2") should be (
