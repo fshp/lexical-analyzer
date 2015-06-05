@@ -18,7 +18,7 @@ trait LexicalAnalyzer extends RegexParsers with Expressions {
   //lazy val term: Parser[Any]   = factor ~ rep(("*" | "/") ~ factor)
   //lazy val factor: Parser[Any] = number | "(" ~ expr ~ ")"
 
-  def expr: Parser[Expression] = (term ~ rep(("+" | "-") ~ term)) ^^ {
+  def expr: Parser[Expression] = (shift ~ rep(("+" | "-") ~ shift)) <~ opt("//.*".r) ^^ {
     case t ~ p => p.foldLeft(t) {
       (e: Expression, lexeme: ~[String, Expression]) =>
         lexeme match {
@@ -28,7 +28,17 @@ trait LexicalAnalyzer extends RegexParsers with Expressions {
     }
   }
   
-  def term: Parser[Expression] = factor ~ rep(("*" | "/") ~ factor) ^^ {
+  def shift: Parser[Expression] = term ~ rep(("<<" | ">>") ~ term) ^^ {
+    case t ~ p => p.foldLeft(t) {
+      (e: Expression, lexeme: ~[String, Expression]) =>
+        lexeme match {
+          case "<<" ~ r => ShiftL(e, r)
+          case ">>" ~ r => ShiftR(e, r)
+        }
+    }
+  }
+
+  def term: Parser[Expression] = unaryMinus ~ rep(("*" | "/") ~ unaryMinus) ^^ {
     case t ~ p => p.foldLeft(t) {
       (e: Expression, lexeme: ~[String, Expression]) =>
         lexeme match {
@@ -37,6 +47,11 @@ trait LexicalAnalyzer extends RegexParsers with Expressions {
         }
     }
   }
+
+  def unaryMinus: Parser[Expression] = opt("-") ~ factor ^^ {
+    case Some("-") ~ p => Minus(p)
+    case None ~ p => p
+    }
 
   def factor: Parser[Expression] = integer | "(" ~> expr <~ ")"
 
@@ -50,7 +65,7 @@ object LexicalAnalyzer extends LexicalAnalyzer {
   def parseSource(source: String): Expression = {
     parseAll(expr, source) match {
       case Success (t, _) => t
-      case NoSuccess(msg, next) => throw new IllegalArgumentException(next.pos.longString + ": " + msg)
+      case NoSuccess(msg, next) => throw new IllegalArgumentException(next.pos.line + ":" + next.pos.column + " " + msg)
     }
   }
 }

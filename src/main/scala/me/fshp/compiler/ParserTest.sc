@@ -7,5 +7,5 @@ val program =
     |end.
   """.stripMargin
 
-val result = LexicalAnalyzer.parseSource("1-(2+3)-3-4*4/4/4*2")
+val result = LexicalAnalyzer.parseSource("-5+6 + 10*8 ///asd frg")
 val a = 1
