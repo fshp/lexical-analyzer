@@ -18,7 +18,15 @@ trait LexicalAnalyzer extends RegexParsers with Expressions {
   //lazy val term: Parser[Any]   = factor ~ rep(("*" | "/") ~ factor)
   //lazy val factor: Parser[Any] = number | "(" ~ expr ~ ")"
 
-  def expr: Parser[Expression] = (shift ~ rep(("+" | "-") ~ shift)) <~ opt("//.*".r) ^^ {
+  def assigement: Parser[Expression] = varname ~ "=" ~ expr ^^ {
+    case v ~ "=" ~ e => Assignment(v, e)
+  }
+
+  def varname: Parser[Expression] = "[a-zA-Z_][a-zA-Z0-9_]*".r ^^ {
+    case v => VarName(v)
+  }
+
+  def expr: Parser[Expression] = (shift ~ rep(("+" | "-") ~ shift)) <~ commentary ^^ {
     case t ~ p => p.foldLeft(t) {
       (e: Expression, lexeme: ~[String, Expression]) =>
         lexeme match {
@@ -28,7 +36,7 @@ trait LexicalAnalyzer extends RegexParsers with Expressions {
     }
   }
   
-  def shift: Parser[Expression] = term ~ rep(("<<" | ">>") ~ term) ^^ {
+  def shift: Parser[Expression] = factor ~ rep(("<<" | ">>") ~ factor) ^^ {
     case t ~ p => p.foldLeft(t) {
       (e: Expression, lexeme: ~[String, Expression]) =>
         lexeme match {
@@ -38,7 +46,7 @@ trait LexicalAnalyzer extends RegexParsers with Expressions {
     }
   }
 
-  def term: Parser[Expression] = unaryMinus ~ rep(("*" | "/") ~ unaryMinus) ^^ {
+  def factor: Parser[Expression] = unaryMinus ~ rep(("*" | "/") ~ unaryMinus) ^^ {
     case t ~ p => p.foldLeft(t) {
       (e: Expression, lexeme: ~[String, Expression]) =>
         lexeme match {
@@ -48,22 +56,24 @@ trait LexicalAnalyzer extends RegexParsers with Expressions {
     }
   }
 
-  def unaryMinus: Parser[Expression] = opt("-") ~ factor ^^ {
+  def unaryMinus: Parser[Expression] = opt("-") ~ terminal ^^ {
     case Some("-") ~ p => Minus(p)
     case None ~ p => p
     }
 
-  def factor: Parser[Expression] = integer | "(" ~> expr <~ ")"
+  def terminal: Parser[Expression] = integer | "(" ~> expr <~ ")"
 
   def integer: Parser[IntegerLiteral] = "[0-9]+".r ^^ {
     case s => IntegerLiteral(s.toInt)
   }
 
+  def commentary: Parser[Any] = opt("//.*".r)
+
 }
 
 object LexicalAnalyzer extends LexicalAnalyzer {
   def parseSource(source: String): Expression = {
-    parseAll(expr, source) match {
+    parseAll(assigement, source) match {
       case Success (t, _) => t
       case NoSuccess(msg, next) => throw new IllegalArgumentException(next.pos.line + ":" + next.pos.column + " " + msg)
     }

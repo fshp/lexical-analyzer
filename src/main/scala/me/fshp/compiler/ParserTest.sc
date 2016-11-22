@@ -1,11 +1,5 @@
 import me.fshp.compiler.LexicalAnalyzer
 
-val program =
-  """
-    |program
-    |a = 1 + 2
-    |end.
-  """.stripMargin
 
-val result = LexicalAnalyzer.parseSource("-5+6 + 10*8 ///asd frg")
+val result = LexicalAnalyzer.parseSource("a = 2<<3<<4+5-6*3*(4-6) //123")
 val a = 1

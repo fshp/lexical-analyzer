@@ -13,6 +13,9 @@ trait Expressions {
   sealed case class Div(override val l: Expression, override val r: Expression) extends BinaryOp(l ,r)
   sealed case class Minus(override val e: Expression) extends UnaryOp(e)
 
+  sealed case class VarName(v: String) extends Expression with VarPrintable
+  sealed case class Assignment(override val l: Expression, override val r: Expression) extends BinaryOp(l, r)
+
 
   sealed trait Printable {
     this: Expression =>
@@ -27,6 +30,13 @@ trait Expressions {
       override def toString(depth: Int): String = {
         shifting * depth + "Int(" + i + ")"
       }
+  }
+
+  sealed trait VarPrintable extends Printable {
+    this: VarName =>
+    override def toString(depth: Int): String = {
+      shifting * depth + "Var(" + v + ")"
+    }
   }
 
   sealed trait UnaryPrintable extends Printable {
